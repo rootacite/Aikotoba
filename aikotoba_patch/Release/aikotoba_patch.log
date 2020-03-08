@@ -1,0 +1,10 @@
+﻿  dllmain.cpp
+D:\reaming\aikotoba\aikotoba_patch\dllmain.cpp(73,29): warning C4018: “>”: 有符号/无符号不匹配
+D:\reaming\aikotoba\aikotoba_patch\dllmain.cpp(321,23): warning C4018: “<”: 有符号/无符号不匹配
+    正在创建库 D:\reaming\aikotoba\aikotoba_chs\Release\aikotoba_patch.lib 和对象 D:\reaming\aikotoba\aikotoba_chs\Release\aikotoba_patch.exp
+  正在生成代码
+  4 of 149 functions ( 2.7%) were compiled, the rest were copied from previous compilation.
+    0 functions were new in current compilation
+    0 functions had inline decision re-evaluated but remain unchanged
+  已完成代码的生成
+  aikotoba_patch.vcxproj -> D:\reaming\aikotoba\aikotoba_chs\Release\aikotoba_patch.dll

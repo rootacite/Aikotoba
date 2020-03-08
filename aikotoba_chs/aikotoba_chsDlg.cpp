@@ -7,14 +7,129 @@
 #include "aikotoba_chs.h"
 #include "aikotoba_chsDlg.h"
 #include "afxdialogex.h"
+#include "CExter.h"
 #include <TlHelp32.h>
+#include <atlconv.h>
+#include "CUniwerApp.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
+#include <string>
+#include <locale.h>
+using namespace std;
+string ws2s(const wstring& ws) {
+    size_t convertedChars = 0;
+    string curLocale = setlocale(LC_ALL, NULL); //curLocale="C"   
+    setlocale(LC_ALL, "chs");
+    const wchar_t* wcs = ws.c_str();
+    size_t dByteNum = sizeof(wchar_t) * ws.size() + 1;
+    // cout<<"ws.size():"<<ws.size()<<endl;      
+   
+    char* dest = new char[dByteNum];
+    wcstombs_s(&convertedChars, dest, dByteNum, wcs, _TRUNCATE);
+  
+    string result = dest;
+    delete[] dest;
+    setlocale(LC_ALL, curLocale.c_str());
+    return result;
+}
+wstring s2ws(const string& s) {
+    size_t convertedChars = 0;  
+    string curLocale = setlocale(LC_ALL, NULL); 
 
+    setlocale(LC_ALL,"chs");  
+    const char* source=s.c_str(); 
+    size_t charNum=sizeof(char)*s.size()+1;    
+   wchar_t* dest=new wchar_t[charNum];   
+   mbstowcs_s(&convertedChars,dest,charNum,source,_TRUNCATE);  
+   
+   wstring result=dest;   
+   delete[] dest;   
+   setlocale(LC_ALL,curLocale.c_str());  
+   return result;
+}
+ 
+       
+ClipboardExample::ClipboardExample()
+{
+    errCode = 0;
+    hClip = NULL;
+}
+
+ClipboardExample::~ClipboardExample()
+{
+    if (hClip)
+        CloseHandle(hClip);
+}
+
+BOOL ClipboardExample::SetClipData(char* pstr)
+{
+    if (OpenClipboard(NULL))
+    {
+        char* pBuf;
+        if (0 == EmptyClipboard())
+        {
+            CloseClipboard();
+            return false;
+        }
+        hClip = GlobalAlloc(GMEM_MOVEABLE, strlen(pstr) + 1);
+        if (NULL == hClip)
+        {
+            CloseClipboard();
+            return false;
+        }
+        pBuf = (char*)GlobalLock(hClip);
+        if (NULL == pBuf)
+        {
+            CloseClipboard();
+            return false;
+        }
+        strcpy(pBuf, pstr);
+        GlobalUnlock(hClip);
+
+        if (NULL == SetClipboardData(CF_TEXT, hClip))
+        {
+            CloseClipboard();
+            return false;
+        }
+
+        CloseClipboard();
+    }
+    return true;
+}
+
+char* ClipboardExample::GetClipData()
+{
+    char* pstr = 0;
+    if (OpenClipboard(NULL))
+    {
+        if (IsClipboardFormatAvailable(CF_TEXT))
+        {
+            hClip = GetClipboardData(CF_TEXT);
+            if (NULL == hClip)
+            {
+                CloseClipboard();
+                return false;
+            }
+            pstr = (char*)GlobalLock(hClip);
+            GlobalUnlock(hClip);
+            CloseClipboard();
+        }
+    }
+    return pstr;
+}
+
+char* ClipboardExample::GetError()
+{
+    errCode = GetLastError();
+    char pstr[128];
+    itoa(errCode, pstr, 10);
+    return pstr;
+}
 int* nID = NULL;
 
+CUniwerApp* ToolCom = NULL;
 INT UCS4_To_UTF8(DWORD dwUCS4, BYTE* pbUTF8)
 {
     const BYTE  abPrefix[] = { 0, 0xC0, 0xE0, 0xF0, 0xF8, 0xFC };
@@ -371,6 +486,14 @@ HANDLE InjectSelfTo(const WCHAR inptr[])
 	return   0;
 }//同时调用InjectDLL，并试图自动远程执行HOOKSTART
 DWORD trID = 0;
+HANDLE pThread = NULL;
+DWORD WINAPI ThreadExit(LPVOID lPvoid) {
+    WaitForSingleObject(pThread,INFINITE);
+
+    TerminateProcess(GetCurrentProcess(), 1);
+
+    return 0;
+}
 
 BOOL CaikotobachsDlg::OnInitDialog()
 {
@@ -384,15 +507,20 @@ BOOL CaikotobachsDlg::OnInitDialog()
 	// TODO: 在此添加额外的初始化代码
 	
 	patch = LoadLibrary(L"aikotoba_patch.dll");
-	void (*pStart)(wchar_t[]) = (void(*)(wchar_t[]))::GetProcAddress(patch, "InjectSelfTo");
-	pStart(L"cs2.exe");
-
+	HANDLE (*pStart)(wchar_t[]) = (HANDLE(*)(wchar_t[]))::GetProcAddress(patch, "InjectSelfTo");
+     pThread = pStart(L"cs2.exe");
+     CreateThread(0, 0, ThreadExit, 0, 0, 0);
 	ms_str = (LPWSTR)::GetProcAddress(patch, "ms_str");
 	SetTimer(1, 100, NULL);
 
 	trID = GetProcessIDByName(L"cs2.exe");
-
+    ToolCom = new CUniwerApp();
+    ToolCom->Create(IDD_DIALOG1);
 	::RegisterHotKey(GetSafeHwnd(), WM_HOTKEY, MOD_ALT, 'N');
+    ::RegisterHotKey(GetSafeHwnd(), WM_HOTKEY, MOD_ALT, 'B');
+    ::RegisterHotKey(GetSafeHwnd(), WM_HOTKEY, MOD_SHIFT, 'F');
+    ::RegisterHotKey(GetSafeHwnd(), WM_HOTKEY, MOD_SHIFT, 'Q');
+    ::RegisterHotKey(GetSafeHwnd(), WM_HOTKEY, MOD_SHIFT, 'V');
 	isexist = (BOOL*)::GetProcAddress(patch,"exist");
     nID=(int*)::GetProcAddress(patch, "nID");
 
@@ -487,25 +615,58 @@ void CaikotobachsDlg::OnBnClickedButton2()
 
 static int ShowInfo = 1;
 
+
 void CaikotobachsDlg::OnHotKey(UINT nHotKeyId, UINT nKey1, UINT nKey2)
 {
 
-    if (ShowInfo > 0) {
-        int result = ::MessageBoxW(::GetForegroundWindow(), L"文本修改的功能是作者在 ※调试阶段※ 遗留的功能，\n这也就是说他是有效的，但是可能会降低程序的稳定性，\n你确定要继续吗？", L"提示", MB_ICONWARNING | MB_OKCANCEL);
-        if (result == IDOK) {
-            ShowInfo--;
-        }
-        else {
-            CDialogEx::OnHotKey(nHotKeyId, nKey1, nKey2);
-            return;
-        }
-    }
+  
 
 	// TODO: 在此添加消息处理程序代码和/或调用默认值
 	if (nKey1 == MOD_ALT&& nKey2=='N') {
+        if (ShowInfo > 0) {
+            int result = ::MessageBoxW(::GetForegroundWindow(), L"文本修改的功能是作者在 ※调试阶段※ 遗留的功能，\n这也就是说他是有效的，但是可能会降低程序的稳定性，\n你确定要继续吗？", L"提示", MB_ICONWARNING | MB_OKCANCEL);
+            if (result == IDOK) {
+                ShowInfo--;
+            }
+            else {
+                CDialogEx::OnHotKey(nHotKeyId, nKey1, nKey2);
+                return;
+            }
+        }
 		//SetWindowPos();
 		ShowWindow(SW_RESTORE);
 	}
+    if (nKey1 == MOD_ALT && nKey2 == 'B') {
+        //SetWindowPos();
+  
+        ToolCom->ShowWindow(SW_SHOW);
+    }
+    if (nKey1 == MOD_SHIFT && nKey2 == 'F' && ShowInfo == 0) {
+        //SetWindowPos();
+
+        void(*SetPch)(WCHAR[]) = (void(*)(WCHAR[]))::GetProcAddress(patch, "CreateDataExport");
+        CString buf;
+        GetDlgItem(IDC_EDIT1)->GetWindowTextW(buf);
+        SetPch(buf.GetBuffer());
+    }
+    if (nKey1 == MOD_SHIFT && nKey2 == 'Q' && ShowInfo == 0) {
+        //SetWindowPos();
+        ClipboardExample Lca = ClipboardExample();
+
+        wstring localstr = ms_str;
+        string loastr = ws2s(localstr);
+        //  :: MessageBoxA(0, loastr.c_str(),"",0);
+        Lca.SetClipData((char*)loastr.c_str());
+
+        GetDlgItem(IDC_EDIT1)->SetWindowTextW(ms_str);
+    }
+    if (nKey1 == MOD_SHIFT && nKey2 == 'V' && ShowInfo == 0) {
+        //SetWindowPos();
+        ClipboardExample Lca = ClipboardExample();
+        string a = Lca.GetClipData();
+        wstring aa = s2ws(a);
+        GetDlgItem(IDC_EDIT1)->SetWindowTextW(aa.c_str());
+    }
 	CDialogEx::OnHotKey(nHotKeyId, nKey1, nKey2);
 }
 
@@ -526,12 +687,18 @@ void CaikotobachsDlg::OnWindowPosChanging(WINDOWPOS* lpwndpos)
 	// TODO: 在此处添加消息处理程序代码
 }
 
-
+ 
 void CaikotobachsDlg::OnBnClickedButton3()
 {
 	// TODO: 在此添加控件通知处理程序代码
   
-	
+    ClipboardExample Lca = ClipboardExample();
+
+    wstring localstr = ms_str;
+    string loastr = ws2s(localstr);
+ //  :: MessageBoxA(0, loastr.c_str(),"",0);
+    Lca.SetClipData((char*)loastr.c_str());
+
     GetDlgItem(IDC_EDIT1)->SetWindowTextW(ms_str);
 }
 

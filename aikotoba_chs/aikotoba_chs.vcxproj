@@ -136,7 +136,7 @@
       <WarningLevel>Level3</WarningLevel>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <SDLCheck>true</SDLCheck>
+      <SDLCheck>false</SDLCheck>
       <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
     </ClCompile>
@@ -186,6 +186,8 @@
   <ItemGroup>
     <ClInclude Include="aikotoba_chs.h" />
     <ClInclude Include="aikotoba_chsDlg.h" />
+    <ClInclude Include="CExter.h" />
+    <ClInclude Include="CUniwerApp.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="Resource.h" />
@@ -194,6 +196,7 @@
   <ItemGroup>
     <ClCompile Include="aikotoba_chs.cpp" />
     <ClCompile Include="aikotoba_chsDlg.cpp" />
+    <ClCompile Include="CUniwerApp.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>

@@ -20,14 +20,14 @@ extern "C" DLLAPI int nID = 0;
 #pragma data_seg()
 #pragma comment(linker, "/section:PublicData,rws")
 
-
+int npID = 0;
 
 HMODULE SelfHandle = NULL;
-DWORD byteOfReading;
-DWORD byteOfWriting;
+
 char IpfData[16];
 
-
+DWORD byteOfReading;
+DWORD byteOfWriting;
 struct IndexData {
     int Id;
     DWORD JpBass;
@@ -42,7 +42,41 @@ struct IndexData {
 #define PutInt(a) _itoa_s(a,IpfData,10);MessageBoxA(0,IpfData,"num",0);
 
 
+int GEtLargestID() {
+    BOOL enFailed;
+    DWORD dwSize;
+    DWORD Largest = 0;
 
+    HANDLE hIndex = OpenRegular(L"Index.ax", GENERIC_READ);
+    if (hIndex == INVALID_HANDLE_VALUE) { MessageBoxA(0, "error", "5", 0); exit(-1); }
+    dwSize = GetFileSize(hIndex, NULL);
+    if (dwSize <= 0) {
+        CloseHandle(hIndex);
+        return 0;
+    }
+    BYTE* lpMem = new BYTE[dwSize];
+    enFailed = Read(hIndex, lpMem, dwSize);
+    if (!enFailed) {
+        int aok = MessageBox(0, L"程序出现了一个异常（0），但是他仍然有可能正常运行，你要继续吗？", L"提示", MB_ICONERROR | MB_OKCANCEL);
+        if (aok == IDCANCEL)exit(-1);
+    }
+    IndexData* tData = (IndexData*)lpMem;
+
+
+    for (DWORD i = 0; i <= dwSize / sizeof(IndexData); i++) {
+        if (i == (dwSize / sizeof(IndexData))) {
+            CloseHandle(hIndex);
+            delete[] lpMem;
+            return Largest;
+        }
+
+        if ((tData + i)->Id > Largest) {
+            Largest = (tData + i)->Id;
+       }
+    }
+
+    return 0;
+}
 BOOL GetDataByID(int ID, LPWSTR jpBuff, LPWSTR cnBuffer) {
     BOOL enFailed;
     DWORD dwSize;
@@ -57,7 +91,7 @@ BOOL GetDataByID(int ID, LPWSTR jpBuff, LPWSTR cnBuffer) {
     BYTE* lpMem = new BYTE[dwSize];
     enFailed = Read(hIndex, lpMem, dwSize);
     if (!enFailed) {
-        int aok = MessageBox(0, L"程序出现了一个异常，但是他仍然有可能正常运行，你要继续吗？", L"提示", MB_ICONERROR | MB_OKCANCEL);
+        int aok = MessageBox(0, L"程序出现了一个异常（1），但是他仍然有可能正常运行，你要继续吗？", L"提示", MB_ICONERROR | MB_OKCANCEL);
         if (aok == IDCANCEL)exit(-1);
     }
     IndexData* tData = (IndexData*)lpMem;
@@ -86,14 +120,14 @@ BOOL GetDataByID(int ID, LPWSTR jpBuff, LPWSTR cnBuffer) {
     SetFilePointer(hData, tData->JpBass, NULL, FILE_BEGIN);
     enFailed = Read(hData, jpBuff, tData->JpLength);
     if (!enFailed) {
-        int aok = MessageBox(0, L"程序出现了一个异常，但是他仍然有可能正常运行，你要继续吗？", L"提示", MB_ICONERROR | MB_OKCANCEL);
+        int aok = MessageBox(0, L"程序出现了一个异常（2），但是他仍然有可能正常运行，你要继续吗？", L"提示", MB_ICONERROR | MB_OKCANCEL);
         if (aok == IDCANCEL)exit(-1);
     }
     //  PutInt(tData->CnBass);
     SetFilePointer(hData, tData->CnBass, NULL, FILE_BEGIN);
     enFailed = Read(hData, cnBuffer, tData->CnLength);
     if (!enFailed) {
-        int aok = MessageBox(0, L"程序出现了一个异常，但是他仍然有可能正常运行，你要继续吗？", L"提示", MB_ICONERROR | MB_OKCANCEL);
+        int aok = MessageBox(0, L"程序出现了一个异常（3），但是他仍然有可能正常运行，你要继续吗？", L"提示", MB_ICONERROR | MB_OKCANCEL);
         if (aok == IDCANCEL)exit(-1);
     }
     CloseHandle(hData);
@@ -121,7 +155,7 @@ BOOL GetDataByJP(int* ID, LPCWSTR jpBuff, LPWSTR cnBuffer) {
     BYTE* lpMem = new BYTE[dwSize];
     enFailed = Read(hIndex, lpMem, dwSize);
     if (!enFailed) {
-        int aok = MessageBox(0, L"程序出现了一个异常，但是他仍然有可能正常运行，你要继续吗？", L"提示", MB_ICONERROR | MB_OKCANCEL);
+        int aok = MessageBox(0, L"程序出现了一个异常（4），但是他仍然有可能正常运行，你要继续吗？", L"提示", MB_ICONERROR | MB_OKCANCEL);
         if (aok == IDCANCEL)exit(-1);
     }
     IndexData* tData = (IndexData*)lpMem;
@@ -141,14 +175,16 @@ BOOL GetDataByJP(int* ID, LPCWSTR jpBuff, LPWSTR cnBuffer) {
         SetFilePointer(hData, (tData+i)->JpBass, NULL, FILE_BEGIN);
         enFailed = Read(hData, njp, (tData + i)->JpLength);
         if (!enFailed) {
-            int aok = MessageBox(0, L"程序出现了一个异常，但是他仍然有可能正常运行，你要继续吗？", L"提示", MB_ICONERROR | MB_OKCANCEL);
+            int aok = MessageBox(0, L"程序出现了一个异常（5），但是他仍然有可能正常运行，你要继续吗？", L"提示", MB_ICONERROR | MB_OKCANCEL);
             if (aok == IDCANCEL)exit(-1);
         }
         //  PutInt(tData->CnBass);
         SetFilePointer(hData, (tData + i)->CnBass, NULL, FILE_BEGIN);
         enFailed = Read(hData, ncn, (tData + i)->CnLength);
         if (!enFailed) {
-            int aok = MessageBox(0, L"程序出现了一个异常，但是他仍然有可能正常运行，你要继续吗？", L"提示", MB_ICONERROR | MB_OKCANCEL);
+            int a = GetLastError();
+            PutInt(a);
+            int aok = MessageBox(0, L"程序出现了一个异常（6），但是他仍然有可能正常运行，你要继续吗？", L"提示", MB_ICONERROR | MB_OKCANCEL);
             if (aok == IDCANCEL)exit(-1);
         }
 
@@ -275,6 +311,8 @@ void ApplyStringToCV(LPCWSTR ws, DWORD pDf, int id)
     DWORD Df = *(DWORD*)pDf;//Df 数据的指针
     if (!Df)return;//为零则终止函数
     TESTDATA* nCView = (TESTDATA*)Df;//使一个TESTDATA*指向Df
+    DWORD pOld;
+    VirtualProtect(nCView, 10 + (localString.length() * 2), PAGE_READWRITE, &pOld);
     TESTDATA loadFirst = *nCView;//保存第一个数据
     int posInLine = 0;//横排位置
     int posinCross = 0xD;//竖排位置
@@ -300,6 +338,8 @@ void ApplyStringToCV(LPCWSTR ws, DWORD pDf, int id)
     }
   //  SetWindowTextW(m_hWnd, L"跳出循环");
     *(DWORD*)(pDf + 4) = (DWORD)nCView;
+
+    VirtualProtect(nCView, 10 + (localString.length() * 2), pOld, NULL);
 }
 
 
@@ -324,9 +364,11 @@ BOOL InjectDLL(HANDLE hProcess, LPCWSTR dllFilePathName)
 
     return TRUE;
 }//实现dll注入
-extern "C" DLLAPI int InjectSelfTo(wchar_t inptr[])
+extern "C" DLLAPI HANDLE InjectSelfTo(wchar_t inptr[])
 {
-    host_Id = GetCurrentProcessId();
+  //  host_Id = GetCurrentProcessId();
+
+    HANDLE currentThread = NULL;
 
     LPPROCESS_INFORMATION info = new PROCESS_INFORMATION;
     STARTUPINFO si = { sizeof(si) };
@@ -337,15 +379,17 @@ extern "C" DLLAPI int InjectSelfTo(wchar_t inptr[])
             CREATE_SUSPENDED, NULL, NULL, &si, info);
         if (!hF) {
             MessageBox(0, L"创建进程失败", L"错误", MB_ICONERROR);
-            return GetLastError();
+            return 0;
         }
         //   MessageBox(0, L"1", L"", 0);
         wchar_t m_Path[MAX_PATH];
         GetModuleFileName(hMod, m_Path, MAX_PATH);
         if (!InjectDLL(info->hProcess, m_Path)) {
             MessageBoxA(0, "", "", 0);
-            return GetLastError();
+            return 0;
         }
+
+        currentThread = info->hThread;
     } while (0);
 
     HANDLE hHookStart = CreateRemoteThread(info->hProcess, NULL, 0, (LPTHREAD_START_ROUTINE)
@@ -354,22 +398,27 @@ extern "C" DLLAPI int InjectSelfTo(wchar_t inptr[])
     if (!hHookStart)
     {
         MessageBox(0, L"无法创建远程线程(IAT HOOK)", L"错误", MB_ICONERROR);
-        return  GetLastError();
+        return  0;
     }
     WaitForSingleObject(hHookStart, 0);
     ResumeThread(info->hThread);
     delete info;
 
     lstrcpyW(ms_str, L" ");
-    return   0;
+    return  currentThread;
 }//同时调用InjectDLL，并试图自动远程执行HOOKSTART
-extern "C" DLLAPI void CreateDataExport(WCHAR data[]) {
+extern "C" DLLAPI void CreateDataExport(WCHAR data[]){
 
 
     WCHAR sjp[3096];
     WCHAR scn[3096];
 
+    int lasger = GEtLargestID();
 
+    if (nID - lasger > 2) {
+        MessageBox(0, L"ID数值似乎不太对劲，\n程序因此取消了这次的行动。", L"错误", MB_ICONERROR);
+        return;
+    }
     if (!GetDataByID(nID-1, sjp, scn)) {
 
         CreateDataByID(nID - 1, ms_str, 2 * (lstrlenW(ms_str) + 1), data, 2 * (lstrlenW(data) + 1));
@@ -394,8 +443,12 @@ extern "C" DLLAPI void CreateDataExport(WCHAR data[]) {
         nString += L"\n";
         nString += sjp;
         int result = MessageBoxW(NULL, nString.c_str(), L"信息", MB_ICONINFORMATION | MB_OKCANCEL);
+
+
         if (result != IDOK)
             return;
+
+
         int p = 0;
         while (GetDataByID(p, sjp, scn)) {
             if (p == (nID - 1)) {
@@ -417,9 +470,12 @@ extern "C" DLLAPI void CreateDataExport(WCHAR data[]) {
 }
 
 
+
+
 extern "C" DLLAPI int TranSplete(DWORD lp)
 {
 
+    
     if (!lp)return -1;
     DWORD ppDf = *(DWORD*)(lp + 0x2B0);
     if (!ppDf)return -1;
@@ -451,13 +507,40 @@ extern "C" DLLAPI int TranSplete(DWORD lp)
 
         nCView++;
     }
+    npID++;
+   // MessageBoxW(0,L"0",L"",0);
+    WCHAR csjp[3096];
+    WCHAR cscn[3096];
+    int ppId = 0;
+    if (!GetDataByID(nID - 1, csjp, cscn)) {
+        if (nID != 0)
+            if (!GetDataByJP(&ppId, nStr.c_str(), cscn))
+                return -1;
+   }
 
-    lstrcpyW(ms_str, nStr.c_str());
+   // MessageBoxW(0, L"1", L"", 0);
+    if (lstrcmpW(nStr.c_str(), cscn) == 0) {
 
+   //     MessageBoxW(0, nStr.c_str(), L"", 0);
+        return -1;
+    }
+
+  //  MessageBoxW(0, L"2", L"", 0);
     if (wcsstr(nStr.c_str(), L"………")) {
   
         return -1;
    }
+    if (wcsstr(nStr.c_str(), L"…ああ"))
+        return -1;
+
+    if (wcsstr(nStr.c_str(), L"ふふふっ"))
+        return -1;
+
+ //   MessageBoxW(0, L"3", L"", 0);
+
+    lstrcpyW(ms_str, nStr.c_str());
+
+ //   MessageBoxW(0, L"4", L"", 0);
 
     if (!GetDataByID(nID, sjp, scn)) {
         int pID = 0;
@@ -535,6 +618,7 @@ DWORD WINAPI TitleThread(LPVOID lp) {
 extern "C" DLLAPI void start() {
     //?printSub@RetouchPrintManager@@AAEXPBDKAAH1@Z
     CreateThread(0, 0, TitleThread, 0, 0, 0);
+
     DetourRestoreAfterWith();
     DetourTransactionBegin();
     DetourUpdateThread(GetCurrentThread());
@@ -542,6 +626,7 @@ extern "C" DLLAPI void start() {
     DetourTransactionCommit();
 
     start_falg=TRUE;
+    host_Id = GetCurrentProcessId();
     //  pProc(0,"HHH",1);
 
 }
@@ -549,7 +634,6 @@ extern "C" DLLAPI void start() {
 void end() {
     //?printSub@RetouchPrintManager@@AAEXPBDKAAH1@Z
 
-    DetourRestoreAfterWith();
     DetourTransactionBegin();
     DetourUpdateThread(GetCurrentThread());
     DetourDetach(&(PVOID&)sub_5FC1C0, Fakesub_5FC1C0);
@@ -563,7 +647,7 @@ DWORD WINAPI ShowcountThread(LPVOID lPvoid)
 
     while (1)
     {
-        _itow_s(nID - 1, pSfn, 10);
+        _itow_s(npID, pSfn, 10);
         SetWindowTextW(m_hWnd, pSfn);
         Sleep(100);
     }
@@ -588,9 +672,10 @@ BOOL APIENTRY DllMain( HMODULE hModule,
     case DLL_THREAD_DETACH:
         break;
     case DLL_PROCESS_DETACH:
+
+  
         if (start_falg)
             end();
-        TerminateProcess(OpenProcess(PROCESS_TERMINATE, FALSE, host_Id), 1);
         break;
     }
     return TRUE;
